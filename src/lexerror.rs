@@ -1,6 +1,7 @@
 use crate::span::Span;
 
 pub(crate) enum LexError<'src> {
-    UnexpectedChar { ch: char, span: Span },
-    IntOverflow { lexeme: &'src str, span: Span },
+    UnexpectedByte { byte: u8, span: Span },
+    NonAsciiByte { byte: u8, span: Span },
+    IntOverflow { lexeme: &'src [u8], span: Span },
 }
