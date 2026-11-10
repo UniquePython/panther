@@ -6,8 +6,8 @@ pub(crate) enum TokenKind<'src> {
     UnitLiteral,
 
     // Identifiers
-    LowerIdent(&'src str),
-    UpperIdent(&'src str),
+    LowerIdent(&'src [u8]),
+    UpperIdent(&'src [u8]),
 
     // Keywords
     Decl,

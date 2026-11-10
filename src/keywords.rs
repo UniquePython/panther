@@ -1,6 +1,6 @@
 use crate::tokenkind::TokenKind;
 
-const KEYWORDS: &[(&'static [u8], TokenKind<'static>)] = &[
+pub(crate) const KEYWORDS: &[(&'static [u8], TokenKind<'static>)] = &[
     (b"true", TokenKind::BoolLiteral(true)),
     (b"false", TokenKind::BoolLiteral(false)),
     (b"unit", TokenKind::UnitLiteral),

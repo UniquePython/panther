@@ -5,15 +5,12 @@ pub(crate) struct Span {
 }
 
 impl Span {
-    pub(crate) fn new(start: usize, end: usize) -> Option<Self> {
-        if end < start {
-            return None;
-        }
-
-        Some(Self { start, end })
+    pub(crate) fn new(start: usize, end: usize) -> Self {
+        debug_assert!(start <= end);
+        Self { start, end }
     }
 
     pub(crate) fn at(at: usize) -> Self {
-        Self { start: at, end: at }
+        Self::new(at, at)
     }
 }

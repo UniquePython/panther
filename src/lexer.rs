@@ -1,4 +1,7 @@
 use crate::diagnostic::Diagnostic;
+use crate::keywords::KEYWORDS;
+use crate::lexerror::LexError;
+use crate::span::Span;
 use crate::token::Token;
 use crate::tokenkind::TokenKind;
 
@@ -24,8 +27,8 @@ impl<'src> Lexer<'src> {
 
         match self.peek() {
             b'0'..=b'9' => self.scan_int_literal(),
-            b'a'..=b'z' | b'_' => self.scan_lower_identifier(),
-            b'A'..=b'Z' => self.scan_upper_identifier(),
+            b'a'..=b'z' | b'_' => Ok(self.scan_lower_identifier()),
+            b'A'..=b'Z' => Ok(self.scan_upper_identifier()),
             _ => self.scan_operator(),
         }
     }
@@ -57,15 +60,60 @@ impl<'src> Lexer<'src> {
     }
 
     fn scan_int_literal(&mut self) -> Result<Token<'src>, Diagnostic<'src>> {
-        todo!()
+        let start = self.cursor;
+        let mut value: i64 = 0;
+        let mut overflowed = false;
+
+        while !self.is_at_end() && self.peek().is_ascii_digit() {
+            let digit = (self.peek() - b'0') as i64;
+            if !overflowed {
+                match value.checked_mul(10).and_then(|v| v.checked_add(digit)) {
+                    Some(v) => value = v,
+                    None => overflowed = true,
+                }
+            }
+            self.cursor += 1;
+        }
+
+        let span = Span::new(start, self.cursor);
+
+        if overflowed {
+            let lexeme = &self.src[start..self.cursor];
+            return Err(Diagnostic::Lex(LexError::IntOverflow { lexeme, span }));
+        } else {
+            return Ok(Token::new(TokenKind::IntLiteral(value), span));
+        }
     }
 
-    fn scan_lower_identifier(&mut self) -> Result<Token<'src>, Diagnostic<'src>> {
-        todo!()
+    fn scan_lower_identifier(&mut self) -> Token<'src> {
+        let start = self.cursor;
+
+        while !self.is_at_end() && (self.peek().is_ascii_alphanumeric() || self.peek() == b'_') {
+            self.cursor += 1;
+        }
+
+        let lexeme = &self.src[start..self.cursor];
+        let span = Span::new(start, self.cursor);
+
+        let kind = KEYWORDS
+            .iter()
+            .find_map(|(keyword, kind)| (*keyword == lexeme).then_some(*kind))
+            .unwrap_or(TokenKind::LowerIdent(lexeme));
+
+        Token::new(kind, span)
     }
 
-    fn scan_upper_identifier(&mut self) -> Result<Token<'src>, Diagnostic<'src>> {
-        todo!()
+    fn scan_upper_identifier(&mut self) -> Token<'src> {
+        let start = self.cursor;
+
+        while !self.is_at_end() && (self.peek().is_ascii_alphanumeric() || self.peek() == b'_') {
+            self.cursor += 1;
+        }
+
+        let lexeme = &self.src[start..self.cursor];
+        let span = Span::new(start, self.cursor);
+
+        Token::new(TokenKind::UpperIdent(lexeme), span)
     }
 
     fn scan_operator(&mut self) -> Result<Token<'src>, Diagnostic<'src>> {
