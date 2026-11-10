@@ -1,6 +1,7 @@
 use crate::diagnostic::Diagnostic;
 use crate::keywords::KEYWORDS;
 use crate::lexerror::LexError;
+use crate::lookahead::LOOKAHEAD;
 use crate::span::Span;
 use crate::token::Token;
 use crate::tokenkind::TokenKind;
@@ -117,6 +118,38 @@ impl<'src> Lexer<'src> {
     }
 
     fn scan_operator(&mut self) -> Result<Token<'src>, Diagnostic<'src>> {
-        todo!()
+        let start = self.cursor;
+        let remaining = &self.src[self.cursor..];
+        let mut max_len: usize = 0;
+        for (bytes, _) in LOOKAHEAD {
+            let len = bytes.len();
+            if len > max_len {
+                max_len = len;
+            }
+        }
+
+        for len in (1..=max_len).rev() {
+            if remaining.len() >= len {
+                let lexeme = &remaining[..len];
+                for (bytes, kind) in LOOKAHEAD {
+                    if lexeme == *bytes {
+                        self.cursor += len;
+                        return Ok(Token::new(*kind, Span::new(start, self.cursor)));
+                    }
+                }
+            }
+        }
+
+        let byte = self.peek();
+        self.cursor += 1;
+        let span = Span::new(start, self.cursor);
+        let error: LexError;
+        if byte >= 0x80 {
+            error = LexError::NonAsciiByte { byte, span }
+        } else {
+            error = LexError::UnexpectedByte { byte, span };
+        }
+
+        Err(Diagnostic::Lex(error))
     }
 }

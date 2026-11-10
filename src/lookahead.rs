@@ -1,6 +1,6 @@
 use crate::tokenkind::TokenKind;
 
-const LOOKAHEAD: &[(&'static [u8], TokenKind<'static>)] = &[
+pub(crate) const LOOKAHEAD: &[(&'static [u8], TokenKind<'static>)] = &[
     (b"+", TokenKind::Plus),
     (b"-", TokenKind::Minus),
     (b"*", TokenKind::Star),
