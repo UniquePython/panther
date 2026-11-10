@@ -51,7 +51,7 @@ impl<'src> Lexer<'src> {
     }
 
     fn peek(&self) -> u8 {
-        todo!()
+        self.src[self.cursor]
     }
 
     fn scan_int_literal(&mut self) -> Result<Token<'src>, Diagnostic<'src>> {
