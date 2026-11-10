@@ -1,0 +1,78 @@
+(* Panther — Grammar (v0.1 — COMPLETE) *)
+
+(* === v0.1 — primitive literals === *)
+
+digit        = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
+int_literal  = digit , { digit } ;
+bool_literal = "true" | "false" ;
+unit_literal = "unit" ;
+
+letter       = "a" | "b" | "c" | "d" | "e" | "f" | "g" | "h" | "i" | "j" | "k"
+             | "l" | "m" | "n" | "o" | "p" | "q" | "r" | "s" | "t" | "u" | "v"
+             | "w" | "x" | "y" | "z"
+             | "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I" | "J" | "K"
+             | "L" | "M" | "N" | "O" | "P" | "Q" | "R" | "S" | "T" | "U" | "V"
+             | "W" | "X" | "Y" | "Z" ;
+identifier   = ( letter | "_" ) , { letter | digit | "_" } ;
+
+(* === v0.1 — types === *)
+
+type_name    = "Int" | "Bool" | "Unit" ;
+
+(* === v0.1 — variable binding === *)
+
+mutability   = "mut" | "const" ;
+decl_expr    = "decl" , mutability , identifier , ":" , type_name , "=" , expression ;
+
+(* === v0.1 — operator expressions (precedence climbing, tightest to loosest) === *)
+
+expression      = assignment_expr ;
+
+assignment_expr = identifier , ( ":=" | "=:" ) , assignment_expr
+                 | or_expr ;
+
+or_expr         = and_expr , { "||" , and_expr } ;
+
+and_expr        = comparison_expr , { "&&" , comparison_expr } ;
+
+(* comparisons are non-associative: at most one comparison operator per level *)
+comparison_expr = additive_expr , [ comparison_op , additive_expr ] ;
+comparison_op   = "==" | "!=" | "<" | ">" | "<=" | ">=" | "!<" | "!>" | "!<=" | "!>=" ;
+
+additive_expr   = multiplicative_expr , { ( "+" | "-" ) , multiplicative_expr } ;
+
+multiplicative_expr = unary_expr , { ( "*" | "/" | "%" ) , unary_expr } ;
+
+unary_expr      = ( "!" | "-" ) , unary_expr
+                 | primary_expr ;
+
+primary_expr    = int_literal
+                 | bool_literal
+                 | unit_literal
+                 | identifier
+                 | decl_expr
+                 | "(" , expression , ")"
+                 | block_expr
+                 | if_expr
+                 | when_expr
+                 | while_expr
+                 | repeat_expr
+                 | break_expr
+                 | continue_expr ;
+
+(* === v0.1 — blocks === *)
+
+block_expr      = "{" , { expression , ";" } , [ expression ] , "}" ;
+
+(* === v0.1 — control flow === *)
+
+if_expr         = ( "if" | "unless" ) , expression , block_expr ,
+                   { "else" , ( "if" | "unless" ) , expression , block_expr } ,
+                   "else" , block_expr ;
+
+when_expr       = "when" , expression , block_expr ;
+
+while_expr      = "while" , expression , block_expr ;
+repeat_expr     = "repeat" , expression , block_expr ;
+break_expr      = "break" ;
+continue_expr   = "continue" ;
