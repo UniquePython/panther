@@ -2,33 +2,35 @@
 
 (* === v0.1 — primitive literals === *)
 
-digit        = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
-int_literal  = digit , { digit } ;
-bool_literal = "true" | "false" ;
-unit_literal = "unit" ;
+digit            = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
+int_literal      = digit , { digit } ;
+bool_literal     = "true" | "false" ;
+unit_literal     = "unit" ;
 
-letter       = "a" | "b" | "c" | "d" | "e" | "f" | "g" | "h" | "i" | "j" | "k"
-             | "l" | "m" | "n" | "o" | "p" | "q" | "r" | "s" | "t" | "u" | "v"
-             | "w" | "x" | "y" | "z"
-             | "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I" | "J" | "K"
-             | "L" | "M" | "N" | "O" | "P" | "Q" | "R" | "S" | "T" | "U" | "V"
-             | "W" | "X" | "Y" | "Z" ;
-identifier   = ( letter | "_" ) , { letter | digit | "_" } ;
+lower_letter     = "a" | "b" | "c" | "d" | "e" | "f" | "g" | "h" | "i" | "j" | "k"
+                 | "l" | "m" | "n" | "o" | "p" | "q" | "r" | "s" | "t" | "u" | "v"
+                 | "w" | "x" | "y" | "z"
+upper_letter     = "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I" | "J" | "K"
+                 | "L" | "M" | "N" | "O" | "P" | "Q" | "R" | "S" | "T" | "U" | "V"
+                 | "W" | "X" | "Y" | "Z" ;
+letter           = lower_letter | upper_letter
+lower_identifier = ( lower_letter | "_" ) , { letter | digit | "_" } ;
+upper_identifier = upper_letter , { letter | digit | "_" } ;
 
 (* === v0.1 — types === *)
 
-type_name    = "Int" | "Bool" | "Unit" ;
+type_name        = upper_identifier ;
 
 (* === v0.1 — variable binding === *)
 
 mutability   = "mut" | "const" ;
-decl_expr    = "decl" , mutability , identifier , ":" , type_name , "=" , expression ;
+decl_expr    = "decl" , mutability , lower_identifier , ":" , type_name , "=" , expression ;
 
 (* === v0.1 — operator expressions (precedence climbing, tightest to loosest) === *)
 
 expression      = assignment_expr ;
 
-assignment_expr = identifier , ( ":=" | "=:" ) , assignment_expr
+assignment_expr = lower_identifier , ( ":=" | "=:" ) , assignment_expr
                  | or_expr ;
 
 or_expr         = and_expr , { "||" , and_expr } ;
@@ -49,7 +51,7 @@ unary_expr      = ( "!" | "-" ) , unary_expr
 primary_expr    = int_literal
                  | bool_literal
                  | unit_literal
-                 | identifier
+                 | lower_identifier
                  | decl_expr
                  | "(" , expression , ")"
                  | block_expr

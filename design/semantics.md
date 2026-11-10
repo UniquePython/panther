@@ -12,6 +12,11 @@
 - `Bool`: `true` / `false` keyword literals.
 - `Unit`: the "no meaningful value" type. Literal/keyword: `unit`. Exists from the start because the language is expression-oriented — constructs like assignment or loops need *some* value to evaluate to, and `Unit` is that value.
 
+## Identifier casing (v0.1)
+Identifiers are split into two syntactic classes by first character:
+- **UpperIdentifier** (starts with an uppercase letter): used exclusively for type names — `Int`, `Bool`, `Unit` are instances of this class, not hardcoded keywords.
+- **lowerIdentifier** (starts with a lowercase letter or _): used exclusively for variable names (and will extend to function names in v0.2+). This is enforced grammatically, not just by convention: an uppercase name can never be used as a variable, and a lowercase name can never be used as a type.
+
 ## Variable binding (v0.1)
 - Introduced with `decl`. Form: `decl (mut | const) <name> : <Type> = <expr>` — this whole thing is itself an expression.
 - Mutability is mandatory and explicit: must write `mut` or `const`, no implicit default.
