@@ -6,7 +6,7 @@ pub(crate) struct Span {
 
 impl Span {
     pub(crate) fn new(start: usize, end: usize) -> Option<Self> {
-        if end > start {
+        if end < start {
             return None;
         }
 
