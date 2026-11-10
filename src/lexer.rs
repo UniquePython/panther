@@ -43,7 +43,9 @@ impl<'src> Lexer<'src> {
     }
 
     fn skip_whitespace(&mut self) {
-        todo!()
+        while !self.is_at_end() && matches!(self.peek(), b' ' | b'\t' | b'\n' | b'\r') {
+            self.cursor += 1
+        }
     }
 
     fn is_at_end(&self) -> bool {
