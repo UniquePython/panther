@@ -49,7 +49,7 @@ impl<'src> Lexer<'src> {
     }
 
     fn is_at_end(&self) -> bool {
-        todo!()
+        self.cursor >= self.src.len()
     }
 
     fn peek(&self) -> u8 {
