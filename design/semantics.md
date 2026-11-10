@@ -57,6 +57,47 @@ Identifiers are split into two syntactic classes by first character:
 5. `&&`
 6. `||`
 
+## AST normalization (implementation note, v0.1)
+
+The AST is a deliberately minimal, normalized core — syntax that is semantically
+redundant is desugared away at parse time rather than represented as distinct
+AST nodes. This keeps all later passes (interpreter, future typechecker) simpler,
+since they only ever handle the reduced primitive set.
+
+**Comparisons**: only `Lt` (`<`) and `Eq` (`==`) exist as primitive binary
+comparison ops in the AST. All other comparison spellings desugar via `Not`
+(unary `!`) and/or swapping operands:
+
+| Surface syntax | AST form        |
+|-----------------|------------------|
+| `a > b`         | `Lt(b, a)`       |
+| `a <= b`        | `Not(Lt(b, a))`  |
+| `a >= b`        | `Not(Lt(a, b))`  |
+| `a != b`        | `Not(Eq(a, b))`  |
+| `a !< b`        | `Not(Lt(a, b))`  |
+| `a !> b`        | `Not(Lt(b, a))`  |
+| `a !<= b`        | `Lt(b, a)`       |
+| `a !>= b`        | `Lt(a, b)`       |
+
+**`unless`**: `unless cond { A } else { B }` desugars to `if` with a negated
+condition — there is no `Unless` AST node. This directly reflects `unless`'s
+original semantic definition (full drop-in negated `if`), just applied at
+parse time instead of carried into the tree.
+
+**Not desugared** (kept as primitive AST nodes, for genuine semantic reasons
+rather than just syntactic convenience):
+- `&&` / `||` — short-circuit evaluation order is a real semantic that doesn't
+  reduce to other primitives without relocating the same complexity elsewhere
+  (e.g. into a desugared `if`); kept as dedicated ops.
+- Binary `-` — not desugared into `+` and unary negation; kept as its own
+  primitive op.
+- `%` — kept as its own primitive op; not reconstructed from `/`, `*`, `-`.
+
+Note: this normalization is a *parser/AST-shape* decision, not a change to
+Panther's surface syntax or grammar — all ten comparison operators, and both
+`if` and `unless`, remain fully valid, distinct syntax for the programmer.
+Only their internal tree representation is unified.
+
 ## Blocks (v0.1)
 - Delimited with braces: `{ ... }`.
 - A block is a `;`-separated sequence of expressions.
