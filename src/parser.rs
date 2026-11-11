@@ -1,6 +1,7 @@
 use crate::diagnostic::Diagnostic;
 use crate::expr::Expr;
 use crate::exprkind::ExprKind;
+use crate::mutability::Mutability;
 use crate::ops::{AssignOp, BinaryOp, UnaryOp};
 use crate::parseerror::ParseError;
 use crate::span::Span;
@@ -67,6 +68,46 @@ impl<'src> Parser<'src> {
                 span: self.peek().span(),
             }))
         }
+    }
+
+    fn expect_ident(
+        &mut self,
+        description: &'static str,
+        is_valid: impl FnOnce(&TokenKind) -> bool,
+    ) -> Result<(String, Span), Diagnostic<'src>> {
+        let token = self.peek();
+
+        if is_valid(&token.kind()) {
+            let name = match token.kind() {
+                TokenKind::LowerIdent(name) | TokenKind::UpperIdent(name) => {
+                    String::from_utf8(name.to_vec()).unwrap()
+                }
+                _ => unreachable!(),
+            };
+
+            self.advance();
+            Ok((name, token.span()))
+        } else {
+            Err(Diagnostic::Parse(ParseError::UnexpectedToken {
+                expected: description,
+                found: token.kind(),
+                span: token.span(),
+            }))
+        }
+    }
+
+    fn expect_lower_ident(
+        &mut self,
+        description: &'static str,
+    ) -> Result<(String, Span), Diagnostic<'src>> {
+        self.expect_ident(description, |kind| matches!(kind, TokenKind::LowerIdent(_)))
+    }
+
+    fn expect_upper_ident(
+        &mut self,
+        description: &'static str,
+    ) -> Result<(String, Span), Diagnostic<'src>> {
+        self.expect_ident(description, |kind| matches!(kind, TokenKind::UpperIdent(_)))
     }
 
     fn parse_unary(&mut self) -> Result<Expr, Diagnostic<'src>> {
@@ -299,7 +340,42 @@ impl<'src> Parser<'src> {
     }
 
     fn parse_decl(&mut self) -> Result<Expr, Diagnostic<'src>> {
-        todo!()
+        let start = self.expect(TokenKind::Decl, "'decl'")?.span();
+
+        let mutability = match self.peek().kind() {
+            TokenKind::Mut => {
+                self.advance();
+                Mutability::Mut
+            }
+            TokenKind::Const => {
+                self.advance();
+                Mutability::Const
+            }
+            _ => {
+                return Err(Diagnostic::Parse(ParseError::UnexpectedToken {
+                    expected: "'mut' or 'const'",
+                    found: self.peek().kind(),
+                    span: self.peek().span(),
+                }));
+            }
+        };
+
+        let (name, _) = self.expect_lower_ident("a variable name")?;
+        self.expect(TokenKind::Colon, "':'")?;
+        let (ty, _) = self.expect_upper_ident("a type name")?;
+        self.expect(TokenKind::Eq, "'='")?;
+        let value = self.parse_expression()?;
+
+        let span = start.join(value.span);
+        Ok(Expr::new(
+            ExprKind::Decl {
+                mutability,
+                name,
+                ty,
+                value: Box::new(value),
+            },
+            span,
+        ))
     }
 
     fn parse_if(&mut self) -> Result<Expr, Diagnostic<'src>> {
