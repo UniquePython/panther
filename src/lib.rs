@@ -7,6 +7,7 @@ mod lexerror;
 mod lookahead;
 mod mutability;
 mod ops;
+mod parseerror;
 mod span;
 mod token;
 mod tokenkind;
