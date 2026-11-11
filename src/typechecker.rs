@@ -18,6 +18,7 @@ pub(crate) struct TypeChecker {
     bool_ty: TypeId,
     unit_ty: TypeId,
     never_ty: TypeId,
+    loop_depth: usize,
 }
 
 impl TypeChecker {
@@ -343,7 +344,9 @@ impl TypeChecker {
                         span: typed_condition.span(),
                     }));
                 }
+                self.loop_depth += 1;
                 let typed_body = self.check_expr(*body)?;
+                self.loop_depth -= 1;
                 Ok(TypedExpr::new(
                     TypedExprKind::While {
                         condition: Box::new(typed_condition),
@@ -362,7 +365,9 @@ impl TypeChecker {
                         span: typed_count.span(),
                     }));
                 }
+                self.loop_depth += 1;
                 let typed_body = self.check_expr(*body)?;
+                self.loop_depth -= 1;
                 Ok(TypedExpr::new(
                     TypedExprKind::Repeat {
                         count: Box::new(typed_count),
@@ -372,16 +377,30 @@ impl TypeChecker {
                     self.unit_ty,
                 ))
             }
-            ExprKind::Break => Ok(TypedExpr::new(
-                TypedExprKind::Break,
-                expr.span,
-                self.never_ty,
-            )),
-            ExprKind::Continue => Ok(TypedExpr::new(
-                TypedExprKind::Continue,
-                expr.span,
-                self.never_ty,
-            )),
+            ExprKind::Break => {
+                if self.loop_depth == 0 {
+                    return Err(Diagnostic::Type(TypeError::BreakOutsideLoop {
+                        span: expr.span,
+                    }));
+                }
+                Ok(TypedExpr::new(
+                    TypedExprKind::Break,
+                    expr.span,
+                    self.never_ty,
+                ))
+            }
+            ExprKind::Continue => {
+                if self.loop_depth == 0 {
+                    return Err(Diagnostic::Type(TypeError::ContinueOutsideLoop {
+                        span: expr.span,
+                    }));
+                }
+                Ok(TypedExpr::new(
+                    TypedExprKind::Continue,
+                    expr.span,
+                    self.never_ty,
+                ))
+            }
         }
     }
 }

@@ -29,4 +29,10 @@ pub(crate) enum TypeError {
         then_span: Span,
         else_span: Span,
     },
+    BreakOutsideLoop {
+        span: Span,
+    },
+    ContinueOutsideLoop {
+        span: Span,
+    },
 }
