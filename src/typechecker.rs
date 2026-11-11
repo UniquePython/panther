@@ -2,7 +2,8 @@ use crate::diagnostic::Diagnostic;
 use crate::expr::Expr;
 use crate::exprkind::ExprKind;
 use crate::mutability::Mutability;
-use crate::ops::{AssignOp, BinaryOp, UnaryOp};
+use crate::ops::{BinaryOp, UnaryOp};
+use crate::typedef::TypeDef;
 use crate::typedexpr::TypedExpr;
 use crate::typedexprkind::TypedExprKind;
 use crate::typeerror::TypeError;
@@ -22,6 +23,40 @@ pub(crate) struct TypeChecker {
 }
 
 impl TypeChecker {
+    pub(crate) fn new() -> Self {
+        let mut type_scope = TypeScope::new();
+
+        let int_name = "Int".to_string();
+        let bool_name = "Bool".to_string();
+        let unit_name = "Unit".to_string();
+
+        let int_ty = type_scope
+            .insert(int_name.clone(), TypeDef::Builtin { name: int_name })
+            .expect("builtin type names are unique by construction");
+
+        let bool_ty = type_scope
+            .insert(bool_name.clone(), TypeDef::Builtin { name: bool_name })
+            .expect("builtin type names are unique by construction");
+
+        let unit_ty = type_scope
+            .insert(unit_name.clone(), TypeDef::Builtin { name: unit_name })
+            .expect("builtin type names are unique by construction");
+
+        let never_ty = type_scope.insert_anonymous(TypeDef::Builtin {
+            name: "Never".to_string(),
+        });
+
+        Self {
+            type_scope,
+            var_scope: VarScope::new(),
+            int_ty,
+            bool_ty,
+            unit_ty,
+            never_ty,
+            loop_depth: 0,
+        }
+    }
+
     fn types_compatible(&self, expected: TypeId, actual: TypeId) -> bool {
         actual == self.never_ty || expected == actual
     }
@@ -49,7 +84,10 @@ impl TypeChecker {
         Ok(())
     }
 
-    fn check_expr<'lifetime>(&mut self, expr: Expr) -> Result<TypedExpr, Diagnostic<'lifetime>> {
+    pub(crate) fn check<'lifetime>(
+        &mut self,
+        expr: Expr,
+    ) -> Result<TypedExpr, Diagnostic<'lifetime>> {
         match expr.kind {
             ExprKind::IntLiteral(v) => Ok(TypedExpr::new(
                 TypedExprKind::IntLiteral(v),
@@ -78,7 +116,7 @@ impl TypeChecker {
                 })),
             },
             ExprKind::Unary { op, operand } => {
-                let typed_operand = self.check_expr(*operand)?;
+                let typed_operand = self.check(*operand)?;
 
                 let expected = match op {
                     UnaryOp::Neg => self.int_ty,
@@ -103,8 +141,8 @@ impl TypeChecker {
                 ))
             }
             ExprKind::Binary { op, left, right } => {
-                let typed_left = self.check_expr(*left)?;
-                let typed_right = self.check_expr(*right)?;
+                let typed_left = self.check(*left)?;
+                let typed_right = self.check(*right)?;
 
                 let result_ty = match op {
                     BinaryOp::Add
@@ -163,7 +201,7 @@ impl TypeChecker {
                     })
                 })?;
 
-                let typed_value = self.check_expr(*value)?;
+                let typed_value = self.check(*value)?;
 
                 if !self.types_compatible(declared_ty, typed_value.ty()) {
                     return Err(Diagnostic::Type(TypeError::TypeMismatch {
@@ -218,7 +256,7 @@ impl TypeChecker {
                     }));
                 }
 
-                let typed_value = self.check_expr(*value)?;
+                let typed_value = self.check(*value)?;
 
                 if !self.types_compatible(target_ty, typed_value.ty()) {
                     return Err(Diagnostic::Type(TypeError::TypeMismatch {
@@ -243,11 +281,11 @@ impl TypeChecker {
 
                 let mut typed_exprs = Vec::with_capacity(exprs.len());
                 for e in exprs {
-                    typed_exprs.push(self.check_expr(e)?);
+                    typed_exprs.push(self.check(e)?);
                 }
 
                 let typed_trailing = match trailing {
-                    Some(t) => Some(Box::new(self.check_expr(*t)?)),
+                    Some(t) => Some(Box::new(self.check(*t)?)),
                     None => None,
                 };
 
@@ -272,7 +310,7 @@ impl TypeChecker {
                 then_branch,
                 else_branch,
             } => {
-                let typed_condition = self.check_expr(*condition)?;
+                let typed_condition = self.check(*condition)?;
 
                 if !self.types_compatible(self.bool_ty, typed_condition.ty()) {
                     return Err(Diagnostic::Type(TypeError::TypeMismatch {
@@ -282,8 +320,8 @@ impl TypeChecker {
                     }));
                 }
 
-                let typed_then = self.check_expr(*then_branch)?;
-                let typed_else = self.check_expr(*else_branch)?;
+                let typed_then = self.check(*then_branch)?;
+                let typed_else = self.check(*else_branch)?;
 
                 let then_ty = typed_then.ty();
                 let else_ty = typed_else.ty();
@@ -314,7 +352,7 @@ impl TypeChecker {
                 ))
             }
             ExprKind::When { condition, body } => {
-                let typed_condition = self.check_expr(*condition)?;
+                let typed_condition = self.check(*condition)?;
 
                 if !self.types_compatible(self.bool_ty, typed_condition.ty()) {
                     return Err(Diagnostic::Type(TypeError::TypeMismatch {
@@ -324,7 +362,7 @@ impl TypeChecker {
                     }));
                 }
 
-                let typed_body = self.check_expr(*body)?;
+                let typed_body = self.check(*body)?;
 
                 Ok(TypedExpr::new(
                     TypedExprKind::When {
@@ -336,7 +374,7 @@ impl TypeChecker {
                 ))
             }
             ExprKind::While { condition, body } => {
-                let typed_condition = self.check_expr(*condition)?;
+                let typed_condition = self.check(*condition)?;
                 if !self.types_compatible(self.bool_ty, typed_condition.ty()) {
                     return Err(Diagnostic::Type(TypeError::TypeMismatch {
                         expected: self.bool_ty,
@@ -345,7 +383,7 @@ impl TypeChecker {
                     }));
                 }
                 self.loop_depth += 1;
-                let typed_body = self.check_expr(*body)?;
+                let typed_body = self.check(*body)?;
                 self.loop_depth -= 1;
                 Ok(TypedExpr::new(
                     TypedExprKind::While {
@@ -357,7 +395,7 @@ impl TypeChecker {
                 ))
             }
             ExprKind::Repeat { count, body } => {
-                let typed_count = self.check_expr(*count)?;
+                let typed_count = self.check(*count)?;
                 if !self.types_compatible(self.int_ty, typed_count.ty()) {
                     return Err(Diagnostic::Type(TypeError::TypeMismatch {
                         expected: self.int_ty,
@@ -366,7 +404,7 @@ impl TypeChecker {
                     }));
                 }
                 self.loop_depth += 1;
-                let typed_body = self.check_expr(*body)?;
+                let typed_body = self.check(*body)?;
                 self.loop_depth -= 1;
                 Ok(TypedExpr::new(
                     TypedExprKind::Repeat {
