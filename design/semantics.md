@@ -102,6 +102,29 @@ Panther's surface syntax or grammar — all ten comparison operators, and both
 `if` and `unless`, remain fully valid, distinct syntax for the programmer.
 Only their internal tree representation is unified.
 
+## The `Never` type (implementation note, v0.1)
+- `break` and `continue` do not have a normal value-producing type (`Unit` would
+  be inaccurate — they don't evaluate to a value, they transfer control elsewhere).
+  Their type is a special internal type, `Never`.
+- `Never` is **not user-referenceable**: it is not registered under any name in the
+  type scope (unlike `Int`/`Bool`/`Unit`, which users can write directly). There is
+  no surface syntax that produces or names `Never`; it exists purely so the
+  typechecker's unification logic works correctly for `break`/`continue`.
+- **Unification rule**: wherever two types must "agree" (an `if`'s two branches,
+  a `decl`'s annotation vs. its value's type, an assignment's target type vs. the
+  assigned value's type), a `Never` actual type always satisfies whatever was
+  expected — because if control reaches a `Never`-typed expression, execution
+  diverges (breaks/continues) and the surrounding expression's value is never
+  actually produced, so there is nothing for the type check to meaningfully object to.
+  - `if cond { 5 } else { break }` → type `Int` (the non-`Never` branch wins).
+  - `if cond { break } else { continue }` → type `Never` (both branches diverge).
+  - `decl const x: Int = if cond { break } else { 5 };` → type-checks fine.
+  - `some_var := if cond { break } else { continue };` → type-checks fine,
+    regardless of `some_var`'s declared type, since the assignment never
+    actually executes on either path.
+- `Never` is only ever special as an **actual** type; nothing in v0.1 ever
+  expects a value of type `Never`.
+
 ## Blocks (v0.1)
 - Delimited with braces: `{ ... }`.
 - A block is a `;`-separated sequence of expressions.
