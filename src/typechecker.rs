@@ -23,6 +23,29 @@ impl TypeChecker {
         actual == self.never_ty || expected == actual
     }
 
+    fn expect_both(
+        &self,
+        expected: TypeId,
+        left: &TypedExpr,
+        right: &TypedExpr,
+    ) -> Result<(), Diagnostic<'_>> {
+        if !self.types_compatible(expected, left.ty()) {
+            return Err(Diagnostic::Type(TypeError::TypeMismatch {
+                expected,
+                found: left.ty(),
+                span: left.span(),
+            }));
+        }
+        if !self.types_compatible(expected, right.ty()) {
+            return Err(Diagnostic::Type(TypeError::TypeMismatch {
+                expected,
+                found: right.ty(),
+                span: right.span(),
+            }));
+        }
+        Ok(())
+    }
+
     fn check_expr(&mut self, expr: Expr) -> Result<TypedExpr, Diagnostic<'_>> {
         match expr.kind {
             ExprKind::IntLiteral(v) => Ok(TypedExpr::new(
@@ -74,6 +97,52 @@ impl TypeChecker {
                     },
                     expr.span,
                     expected,
+                ))
+            }
+            ExprKind::Binary { op, left, right } => {
+                let typed_left = self.check_expr(*left)?;
+                let typed_right = self.check_expr(*right)?;
+
+                let result_ty = match op {
+                    BinaryOp::Add
+                    | BinaryOp::Sub
+                    | BinaryOp::Mul
+                    | BinaryOp::Div
+                    | BinaryOp::Mod => {
+                        self.expect_both(self.int_ty, &typed_left, &typed_right)?;
+                        self.int_ty
+                    }
+                    BinaryOp::Lt => {
+                        self.expect_both(self.int_ty, &typed_left, &typed_right)?;
+                        self.bool_ty
+                    }
+                    BinaryOp::Eq => {
+                        // operands must match EACH OTHER, not one fixed type
+                        if !self.types_compatible(typed_left.ty(), typed_right.ty())
+                            && !self.types_compatible(typed_right.ty(), typed_left.ty())
+                        {
+                            return Err(Diagnostic::Type(TypeError::TypeMismatch {
+                                expected: typed_left.ty(),
+                                found: typed_right.ty(),
+                                span: typed_right.span(),
+                            }));
+                        }
+                        self.bool_ty
+                    }
+                    BinaryOp::And | BinaryOp::Or => {
+                        self.expect_both(self.bool_ty, &typed_left, &typed_right)?;
+                        self.bool_ty
+                    }
+                };
+
+                Ok(TypedExpr::new(
+                    TypedExprKind::Binary {
+                        op,
+                        left: Box::new(typed_left),
+                        right: Box::new(typed_right),
+                    },
+                    expr.span,
+                    result_ty,
                 ))
             }
         }

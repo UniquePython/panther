@@ -39,6 +39,12 @@ Identifiers are split into two syntactic classes by first character:
 - `/` truncates toward zero (C/Java/Rust-style). `-7 / 2 == -3`.
 - `%` is truncating remainder, sign follows the dividend. `-7 % 3 == -1`.
 
+### Comparison
+- `==` / `!=` (and their desugared/normalized forms) work on **any of the three
+  primitive types** (`Int`, `Bool`, `Unit`), as long as both operands are the
+  same type as each other. Comparing two `Unit`s is always `true`.
+- `< > <= >=` (and their desugared/normalized forms) remain **`Int`-only**.
+
 ### Comparison (on `Int`, produce `Bool`)
 - Standard: `== != < > <= >=`
 - Negated forms (distinct operators, not just sugar removed): `!< !> !<= !>=`
