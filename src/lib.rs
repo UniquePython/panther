@@ -12,4 +12,5 @@ mod parser;
 mod span;
 mod token;
 mod tokenkind;
+mod typedef;
 mod typeid;
