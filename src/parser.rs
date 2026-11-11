@@ -29,8 +29,8 @@ pub(crate) struct Parser<'src> {
 }
 
 impl<'src> Parser<'src> {
-    pub(crate) fn new(tokens: Vec<Token<'src>>, cursor: usize) -> Self {
-        Self { tokens, cursor }
+    pub(crate) fn new(tokens: Vec<Token<'src>>) -> Self {
+        Self { tokens, cursor: 0 }
     }
 
     fn is_at_end(&self) -> bool {
