@@ -2,6 +2,7 @@ use crate::diagnostic::Diagnostic;
 use crate::expr::Expr;
 use crate::exprkind::ExprKind;
 use crate::ops::AssignOp;
+use crate::ops::BinaryOp;
 use crate::parseerror::ParseError;
 use crate::token::Token;
 use crate::tokenkind::TokenKind;
@@ -53,8 +54,48 @@ impl<'src> Parser<'src> {
         }
     }
 
-    fn parse_or(&mut self) -> Result<Expr, Diagnostic<'src>> {
+    fn parse_comparison(&mut self) -> Result<Expr, Diagnostic<'src>> {
         todo!()
+    }
+
+    fn parse_and(&mut self) -> Result<Expr, Diagnostic<'src>> {
+        let mut left = self.parse_comparison()?;
+
+        while self.check(TokenKind::AmpAmp) {
+            self.advance();
+            let right = self.parse_comparison()?;
+            let span = left.span.join(right.span);
+            left = Expr::new(
+                ExprKind::Binary {
+                    op: BinaryOp::And,
+                    left: Box::new(left),
+                    right: Box::new(right),
+                },
+                span,
+            );
+        }
+
+        Ok(left)
+    }
+
+    fn parse_or(&mut self) -> Result<Expr, Diagnostic<'src>> {
+        let mut left = self.parse_and()?;
+
+        while self.check(TokenKind::PipePipe) {
+            self.advance();
+            let right = self.parse_and()?;
+            let span = left.span.join(right.span);
+            left = Expr::new(
+                ExprKind::Binary {
+                    op: BinaryOp::Or,
+                    left: Box::new(left),
+                    right: Box::new(right),
+                },
+                span,
+            );
+        }
+
+        Ok(left)
     }
 
     fn parse_assignment(&mut self) -> Result<Expr, Diagnostic<'src>> {
