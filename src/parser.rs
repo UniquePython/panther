@@ -69,8 +69,59 @@ impl<'src> Parser<'src> {
         }
     }
 
-    fn parse_additive(&mut self) -> Result<Expr, Diagnostic<'src>> {
+    fn parse_unary(&mut self) -> Result<Expr, Diagnostic<'src>> {
         todo!()
+    }
+
+    fn parse_multiplicative(&mut self) -> Result<Expr, Diagnostic<'src>> {
+        let mut left = self.parse_unary()?;
+
+        loop {
+            let op = match self.peek().kind() {
+                TokenKind::Star => BinaryOp::Mul,
+                TokenKind::Slash => BinaryOp::Div,
+                TokenKind::Percent => BinaryOp::Mod,
+                _ => break,
+            };
+            self.advance();
+            let right = self.parse_unary()?;
+            let span = left.span.join(right.span);
+            left = Expr::new(
+                ExprKind::Binary {
+                    op,
+                    left: Box::new(left),
+                    right: Box::new(right),
+                },
+                span,
+            );
+        }
+
+        Ok(left)
+    }
+
+    fn parse_additive(&mut self) -> Result<Expr, Diagnostic<'src>> {
+        let mut left = self.parse_multiplicative()?;
+
+        loop {
+            let op = match self.peek().kind() {
+                TokenKind::Plus => BinaryOp::Add,
+                TokenKind::Minus => BinaryOp::Sub,
+                _ => break,
+            };
+            self.advance();
+            let right = self.parse_multiplicative()?;
+            let span = left.span.join(right.span);
+            left = Expr::new(
+                ExprKind::Binary {
+                    op,
+                    left: Box::new(left),
+                    right: Box::new(right),
+                },
+                span,
+            );
+        }
+
+        Ok(left)
     }
 
     fn parse_comparison(&mut self) -> Result<Expr, Diagnostic<'src>> {
