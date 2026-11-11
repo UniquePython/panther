@@ -52,8 +52,12 @@ impl<'src> Parser<'src> {
         }
     }
 
-    fn parse_expression(&mut self) -> Result<Expr, Diagnostic<'src>> {
+    fn parse_assignment(&mut self) -> Result<Expr, Diagnostic<'src>> {
         todo!()
+    }
+
+    fn parse_expression(&mut self) -> Result<Expr, Diagnostic<'src>> {
+        self.parse_assignment()
     }
 
     fn parse_grouped(&mut self) -> Result<Expr, Diagnostic<'src>> {
