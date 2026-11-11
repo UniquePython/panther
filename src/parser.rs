@@ -71,7 +71,10 @@ impl<'src> Parser<'src> {
             }
             TokenKind::LowerIdent(name) => {
                 self.advance();
-                Ok(Expr::new(ExprKind::Ident(name.to_string()), span))
+                Ok(Expr::new(
+                    ExprKind::Ident(String::from_utf8(name.to_vec()).unwrap()),
+                    span,
+                ))
             }
             TokenKind::LParen => self.parse_grouped(),
             TokenKind::LBrace => self.parse_block(),
