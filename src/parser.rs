@@ -417,7 +417,17 @@ impl<'src> Parser<'src> {
     }
 
     fn parse_when(&mut self) -> Result<Expr, Diagnostic<'src>> {
-        todo!()
+        let start = self.expect(TokenKind::When, "'when'")?.span();
+        let condition = self.parse_expression()?;
+        let body = self.parse_block()?;
+        let span = start.join(body.span);
+        Ok(Expr::new(
+            ExprKind::When {
+                condition: Box::new(condition),
+                body: Box::new(body),
+            },
+            span,
+        ))
     }
 
     fn parse_while(&mut self) -> Result<Expr, Diagnostic<'src>> {
