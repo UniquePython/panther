@@ -15,4 +15,8 @@ impl VarInfo {
     pub(crate) fn ty(&self) -> TypeId {
         self.ty
     }
+
+    pub(crate) fn mutability(&self) -> Mutability {
+        self.mutability
+    }
 }

@@ -1,6 +1,7 @@
 use crate::diagnostic::Diagnostic;
 use crate::expr::Expr;
 use crate::exprkind::ExprKind;
+use crate::mutability::Mutability;
 use crate::ops::{AssignOp, BinaryOp, UnaryOp};
 use crate::typedexpr::TypedExpr;
 use crate::typedexprkind::TypedExprKind;
@@ -189,6 +190,91 @@ impl TypeChecker {
                     },
                     expr.span,
                     declared_ty,
+                ))
+            }
+            ExprKind::Assign { target, op, value } => {
+                let var_info = self
+                    .var_scope
+                    .lookup(&target)
+                    .ok_or_else(|| TypeError::UndefinedVariable {
+                        name: target.clone(),
+                        span: expr.span,
+                    })
+                    .map_err(Diagnostic::Type)?;
+
+                let target_ty = var_info.ty();
+                let target_mutability = var_info.mutability();
+
+                if target_mutability == Mutability::Const {
+                    return Err(Diagnostic::Type(TypeError::AssignToConst {
+                        name: target.clone(),
+                        span: expr.span,
+                    }));
+                }
+
+                let typed_value = self.check_expr(*value)?;
+
+                if !self.types_compatible(target_ty, typed_value.ty()) {
+                    return Err(Diagnostic::Type(TypeError::TypeMismatch {
+                        expected: target_ty,
+                        found: typed_value.ty(),
+                        span: typed_value.span(),
+                    }));
+                }
+
+                Ok(TypedExpr::new(
+                    TypedExprKind::Assign {
+                        target,
+                        op,
+                        value: Box::new(typed_value),
+                    },
+                    expr.span,
+                    target_ty,
+                ))
+            }
+            ExprKind::Assign {
+                target,
+                target_span,
+                op,
+                value,
+            } => {
+                let var_info = self
+                    .var_scope
+                    .lookup(&target)
+                    .ok_or_else(|| TypeError::UndefinedVariable {
+                        name: target.clone(),
+                        span: target_span,
+                    })
+                    .map_err(Diagnostic::Type)?;
+
+                let target_ty = var_info.ty();
+                let target_mutability = var_info.mutability();
+
+                if target_mutability == Mutability::Const {
+                    return Err(Diagnostic::Type(TypeError::AssignToConst {
+                        name: target.clone(),
+                        span: target_span,
+                    }));
+                }
+
+                let typed_value = self.check_expr(*value)?;
+
+                if !self.types_compatible(target_ty, typed_value.ty()) {
+                    return Err(Diagnostic::Type(TypeError::TypeMismatch {
+                        expected: target_ty,
+                        found: typed_value.ty(),
+                        span: typed_value.span(),
+                    }));
+                }
+
+                Ok(TypedExpr::new(
+                    TypedExprKind::Assign {
+                        target,
+                        op,
+                        value: Box::new(typed_value),
+                    },
+                    expr.span,
+                    target_ty,
                 ))
             }
         }

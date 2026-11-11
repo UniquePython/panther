@@ -34,6 +34,7 @@ pub(crate) enum ExprKind {
     // assignment
     Assign {
         target: String,
+        target_span: Span,
         op: AssignOp,
         value: Box<Expr>,
     },

@@ -19,4 +19,8 @@ pub(crate) enum TypeError {
         name: String,
         span: Span,
     },
+    AssignToConst {
+        name: String,
+        span: Span,
+    },
 }

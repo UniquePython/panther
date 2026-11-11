@@ -273,10 +273,11 @@ impl<'src> Parser<'src> {
         let expr = self.parse_or()?;
 
         if self.check(TokenKind::ColonEq) || self.check(TokenKind::EqColon) {
-            // `expr` must actually be a bare identifier for this to be valid
+            let target_span = expr.span;
+
             let ExprKind::Ident(name) = expr.kind else {
                 return Err(Diagnostic::Parse(ParseError::InvalidAssignmentTarget {
-                    span: expr.span,
+                    span: target_span,
                 }));
             };
 
@@ -285,13 +286,14 @@ impl<'src> Parser<'src> {
             } else {
                 AssignOp::New
             };
-            self.advance(); // consume := or =:
+            self.advance();
 
             let value = self.parse_assignment()?;
-            let span = expr.span.join(value.span);
+            let span = target_span.join(value.span);
             return Ok(Expr::new(
                 ExprKind::Assign {
                     target: name,
+                    target_span,
                     op,
                     value: Box::new(value),
                 },
