@@ -1,9 +1,9 @@
 use crate::exprkind::ExprKind;
-use crate::span::{self, Span};
+use crate::span::Span;
 
 pub(crate) struct Expr {
-    kind: ExprKind,
-    span: Span,
+    pub(crate) kind: ExprKind,
+    pub(crate) span: Span,
 }
 
 impl Expr {

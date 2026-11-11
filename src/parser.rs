@@ -1,6 +1,7 @@
 use crate::diagnostic::Diagnostic;
 use crate::expr::Expr;
 use crate::exprkind::ExprKind;
+use crate::ops::AssignOp;
 use crate::parseerror::ParseError;
 use crate::token::Token;
 use crate::tokenkind::TokenKind;
@@ -52,8 +53,41 @@ impl<'src> Parser<'src> {
         }
     }
 
-    fn parse_assignment(&mut self) -> Result<Expr, Diagnostic<'src>> {
+    fn parse_or(&mut self) -> Result<Expr, Diagnostic<'src>> {
         todo!()
+    }
+
+    fn parse_assignment(&mut self) -> Result<Expr, Diagnostic<'src>> {
+        let expr = self.parse_or()?;
+
+        if self.check(TokenKind::ColonEq) || self.check(TokenKind::EqColon) {
+            // `expr` must actually be a bare identifier for this to be valid
+            let ExprKind::Ident(name) = expr.kind else {
+                return Err(Diagnostic::Parse(ParseError::InvalidAssignmentTarget {
+                    span: expr.span,
+                }));
+            };
+
+            let op = if self.check(TokenKind::ColonEq) {
+                AssignOp::Old
+            } else {
+                AssignOp::New
+            };
+            self.advance(); // consume := or =:
+
+            let value = self.parse_assignment()?;
+            let span = expr.span.join(value.span);
+            return Ok(Expr::new(
+                ExprKind::Assign {
+                    target: name,
+                    op,
+                    value: Box::new(value),
+                },
+                span,
+            ));
+        }
+
+        Ok(expr)
     }
 
     fn parse_expression(&mut self) -> Result<Expr, Diagnostic<'src>> {

@@ -7,4 +7,7 @@ pub(crate) enum ParseError<'src> {
         found: TokenKind<'src>,
         span: Span,
     },
+    InvalidAssignmentTarget {
+        span: Span,
+    },
 }
