@@ -25,12 +25,12 @@ impl TypeChecker {
         actual == self.never_ty || expected == actual
     }
 
-    fn expect_both(
+    fn expect_both<'lifetime>(
         &self,
         expected: TypeId,
         left: &TypedExpr,
         right: &TypedExpr,
-    ) -> Result<(), Diagnostic<'_>> {
+    ) -> Result<(), Diagnostic<'lifetime>> {
         if !self.types_compatible(expected, left.ty()) {
             return Err(Diagnostic::Type(TypeError::TypeMismatch {
                 expected,
@@ -48,7 +48,7 @@ impl TypeChecker {
         Ok(())
     }
 
-    fn check_expr(&mut self, expr: Expr) -> Result<TypedExpr, Diagnostic<'_>> {
+    fn check_expr<'lifetime>(&mut self, expr: Expr) -> Result<TypedExpr, Diagnostic<'lifetime>> {
         match expr.kind {
             ExprKind::IntLiteral(v) => Ok(TypedExpr::new(
                 TypedExprKind::IntLiteral(v),
