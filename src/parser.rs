@@ -29,6 +29,10 @@ pub(crate) struct Parser<'src> {
 }
 
 impl<'src> Parser<'src> {
+    pub(crate) fn new(tokens: Vec<Token<'src>>, cursor: usize) -> Self {
+        Self { tokens, cursor }
+    }
+
     fn is_at_end(&self) -> bool {
         matches!(self.peek().kind(), TokenKind::Eof)
     }
@@ -431,11 +435,31 @@ impl<'src> Parser<'src> {
     }
 
     fn parse_while(&mut self) -> Result<Expr, Diagnostic<'src>> {
-        todo!()
+        let start = self.expect(TokenKind::While, "'while'")?.span();
+        let condition = self.parse_expression()?;
+        let body = self.parse_block()?;
+        let span = start.join(body.span);
+        Ok(Expr::new(
+            ExprKind::While {
+                condition: Box::new(condition),
+                body: Box::new(body),
+            },
+            span,
+        ))
     }
 
     fn parse_repeat(&mut self) -> Result<Expr, Diagnostic<'src>> {
-        todo!()
+        let start = self.expect(TokenKind::Repeat, "'repeat'")?.span();
+        let count = self.parse_expression()?;
+        let body = self.parse_block()?;
+        let span = start.join(body.span);
+        Ok(Expr::new(
+            ExprKind::Repeat {
+                count: Box::new(count),
+                body: Box::new(body),
+            },
+            span,
+        ))
     }
 
     fn parse_primary(&mut self) -> Result<Expr, Diagnostic<'src>> {
@@ -483,5 +507,40 @@ impl<'src> Parser<'src> {
                 span,
             })),
         }
+    }
+
+    fn parse_program(&mut self) -> Result<Expr, Diagnostic<'src>> {
+        let start = self.peek().span();
+
+        let mut exprs = Vec::new();
+        let mut trailing = None;
+
+        while !self.is_at_end() {
+            let expr = self.parse_expression()?;
+
+            if self.check(TokenKind::Semi) {
+                self.advance();
+                exprs.push(expr);
+            } else if self.is_at_end() {
+                trailing = Some(Box::new(expr));
+                break;
+            } else {
+                return Err(Diagnostic::Parse(ParseError::UnexpectedToken {
+                    expected: "';' or end of input",
+                    found: self.peek().kind(),
+                    span: self.peek().span(),
+                }));
+            }
+        }
+
+        let end = self.peek().span(); // the Eof token's span
+        let span = start.join(end);
+
+        Ok(Expr::new(ExprKind::Block { exprs, trailing }, span))
+    }
+
+    pub(crate) fn parse(tokens: Vec<Token<'src>>) -> Result<Expr, Diagnostic<'src>> {
+        let mut parser = Parser { tokens, cursor: 0 };
+        parser.parse_program()
     }
 }
