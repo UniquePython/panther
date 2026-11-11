@@ -1,6 +1,8 @@
 use crate::flow::Flow;
 use crate::runtimeerror::RuntimeError;
 use crate::typedexpr::TypedExpr;
+use crate::typedexprkind::TypedExprKind;
+use crate::value::Value;
 use crate::valuescope::ValueScope;
 
 struct Interpreter {
@@ -15,6 +17,10 @@ impl Interpreter {
     }
 
     fn eval(&mut self, expr: &TypedExpr) -> Result<Flow, RuntimeError> {
-        todo!()
+        match *expr.kind() {
+            TypedExprKind::IntLiteral(v) => Ok(Flow::Value(Value::Int(v))),
+            TypedExprKind::BoolLiteral(v) => Ok(Flow::Value(Value::Bool(v))),
+            TypedExprKind::UnitLiteral => Ok(Flow::Value(Value::Unit)),
+        }
     }
 }

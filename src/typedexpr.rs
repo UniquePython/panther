@@ -13,6 +13,10 @@ impl TypedExpr {
         Self { kind, span, ty }
     }
 
+    pub(crate) fn kind(&self) -> &TypedExprKind {
+        &self.kind
+    }
+
     pub(crate) fn span(&self) -> Span {
         self.span
     }
