@@ -2,6 +2,7 @@ mod diagnostic;
 mod expr;
 mod exprkind;
 mod flow;
+mod interpreter;
 mod keywords;
 mod lexer;
 mod lexerror;
