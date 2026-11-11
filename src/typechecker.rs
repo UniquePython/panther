@@ -277,6 +277,35 @@ impl TypeChecker {
                     target_ty,
                 ))
             }
+            ExprKind::Block { exprs, trailing } => {
+                self.var_scope.push();
+
+                let mut typed_exprs = Vec::with_capacity(exprs.len());
+                for e in exprs {
+                    typed_exprs.push(self.check_expr(e)?);
+                }
+
+                let typed_trailing = match trailing {
+                    Some(t) => Some(Box::new(self.check_expr(*t)?)),
+                    None => None,
+                };
+
+                let block_ty = match &typed_trailing {
+                    Some(t) => t.ty(),
+                    None => self.unit_ty,
+                };
+
+                self.var_scope.pop();
+
+                Ok(TypedExpr::new(
+                    TypedExprKind::Block {
+                        exprs: typed_exprs,
+                        trailing: typed_trailing,
+                    },
+                    expr.span,
+                    block_ty,
+                ))
+            }
         }
     }
 }
