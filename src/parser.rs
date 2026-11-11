@@ -379,7 +379,41 @@ impl<'src> Parser<'src> {
     }
 
     fn parse_if(&mut self) -> Result<Expr, Diagnostic<'src>> {
-        todo!()
+        let token = self.advance();
+        let negate = matches!(token.kind(), TokenKind::Unless);
+        let start = token.span();
+
+        let mut condition = self.parse_expression()?;
+        if negate {
+            let cond_span = condition.span;
+            condition = Expr::new(
+                ExprKind::Unary {
+                    op: UnaryOp::Not,
+                    operand: Box::new(condition),
+                },
+                cond_span,
+            );
+        }
+
+        let then_branch = self.parse_block()?;
+
+        self.expect(TokenKind::Else, "'else'")?;
+
+        let else_branch = if self.check(TokenKind::If) || self.check(TokenKind::Unless) {
+            self.parse_if()?
+        } else {
+            self.parse_block()?
+        };
+
+        let span = start.join(else_branch.span);
+        Ok(Expr::new(
+            ExprKind::If {
+                condition: Box::new(condition),
+                then_branch: Box::new(then_branch),
+                else_branch: Box::new(else_branch),
+            },
+            span,
+        ))
     }
 
     fn parse_when(&mut self) -> Result<Expr, Diagnostic<'src>> {
