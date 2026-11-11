@@ -1,6 +1,7 @@
 use crate::expr::Expr;
 use crate::mutability::Mutability;
 use crate::ops::{AssignOp, BinaryOp, UnaryOp};
+use crate::span::Span;
 
 pub(crate) enum ExprKind {
     // literals / identifiers
@@ -24,7 +25,9 @@ pub(crate) enum ExprKind {
     Decl {
         mutability: Mutability,
         name: String,
+        name_span: Span,
         ty: String,
+        ty_span: Span,
         value: Box<Expr>,
     },
 

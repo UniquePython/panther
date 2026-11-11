@@ -364,9 +364,9 @@ impl<'src> Parser<'src> {
             }
         };
 
-        let (name, _) = self.expect_lower_ident("a variable name")?;
+        let (name, name_span) = self.expect_lower_ident("a variable name")?;
         self.expect(TokenKind::Colon, "':'")?;
-        let (ty, _) = self.expect_upper_ident("a type name")?;
+        let (ty, ty_span) = self.expect_upper_ident("a type name")?;
         self.expect(TokenKind::Eq, "'='")?;
         let value = self.parse_expression()?;
 
@@ -375,7 +375,9 @@ impl<'src> Parser<'src> {
             ExprKind::Decl {
                 mutability,
                 name,
+                name_span,
                 ty,
+                ty_span,
                 value: Box::new(value),
             },
             span,
