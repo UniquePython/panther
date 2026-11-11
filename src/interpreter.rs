@@ -21,6 +21,7 @@ impl Interpreter {
             TypedExprKind::IntLiteral(v) => Ok(Flow::Value(Value::Int(v))),
             TypedExprKind::BoolLiteral(v) => Ok(Flow::Value(Value::Bool(v))),
             TypedExprKind::UnitLiteral => Ok(Flow::Value(Value::Unit)),
+            TypedExprKind::Ident(name) => Ok(Flow::Value(self.value_scope.lookup(&name))),
         }
     }
 }
