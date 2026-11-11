@@ -306,6 +306,52 @@ impl TypeChecker {
                     block_ty,
                 ))
             }
+            ExprKind::If {
+                condition,
+                then_branch,
+                else_branch,
+            } => {
+                let typed_condition = self.check_expr(*condition)?;
+
+                if !self.types_compatible(self.bool_ty, typed_condition.ty()) {
+                    return Err(Diagnostic::Type(TypeError::TypeMismatch {
+                        expected: self.bool_ty,
+                        found: typed_condition.ty(),
+                        span: typed_condition.span(),
+                    }));
+                }
+
+                let typed_then = self.check_expr(*then_branch)?;
+                let typed_else = self.check_expr(*else_branch)?;
+
+                let then_ty = typed_then.ty();
+                let else_ty = typed_else.ty();
+
+                let result_ty = if then_ty == self.never_ty {
+                    else_ty
+                } else if else_ty == self.never_ty {
+                    then_ty
+                } else if then_ty == else_ty {
+                    then_ty
+                } else {
+                    return Err(Diagnostic::Type(TypeError::BranchMismatch {
+                        then_ty,
+                        else_ty,
+                        then_span: typed_then.span(),
+                        else_span: typed_else.span(),
+                    }));
+                };
+
+                Ok(TypedExpr::new(
+                    TypedExprKind::If {
+                        condition: Box::new(typed_condition),
+                        then_branch: Box::new(typed_then),
+                        else_branch: Box::new(typed_else),
+                    },
+                    expr.span,
+                    result_ty,
+                ))
+            }
         }
     }
 }

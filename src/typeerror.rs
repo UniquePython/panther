@@ -23,4 +23,10 @@ pub(crate) enum TypeError {
         name: String,
         span: Span,
     },
+    BranchMismatch {
+        then_ty: TypeId,
+        else_ty: TypeId,
+        then_span: Span,
+        else_span: Span,
+    },
 }
