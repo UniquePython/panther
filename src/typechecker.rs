@@ -7,6 +7,7 @@ use crate::typedexprkind::TypedExprKind;
 use crate::typeerror::TypeError;
 use crate::typeid::TypeId;
 use crate::typescope::TypeScope;
+use crate::varinfo::VarInfo;
 use crate::varscope::VarScope;
 
 pub(crate) struct TypeChecker {
@@ -143,6 +144,51 @@ impl TypeChecker {
                     },
                     expr.span,
                     result_ty,
+                ))
+            }
+            ExprKind::Decl {
+                mutability,
+                name,
+                name_span,
+                ty,
+                ty_span,
+                value,
+            } => {
+                let declared_ty = self.type_scope.lookup(&ty).ok_or_else(|| {
+                    Diagnostic::Type(TypeError::UnknownType {
+                        name: ty.clone(),
+                        span: ty_span,
+                    })
+                })?;
+
+                let typed_value = self.check_expr(*value)?;
+
+                if !self.types_compatible(declared_ty, typed_value.ty()) {
+                    return Err(Diagnostic::Type(TypeError::TypeMismatch {
+                        expected: declared_ty,
+                        found: typed_value.ty(),
+                        span: typed_value.span(),
+                    }));
+                }
+
+                let var_info = VarInfo::new(declared_ty, mutability);
+                self.var_scope
+                    .declare(name.clone(), var_info)
+                    .map_err(|_| {
+                        Diagnostic::Type(TypeError::DuplicateVariable {
+                            name: name.clone(),
+                            span: name_span,
+                        })
+                    })?;
+
+                Ok(TypedExpr::new(
+                    TypedExprKind::Decl {
+                        mutability,
+                        name,
+                        value: Box::new(typed_value),
+                    },
+                    expr.span,
+                    declared_ty,
                 ))
             }
         }

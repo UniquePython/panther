@@ -11,4 +11,12 @@ pub(crate) enum TypeError {
         found: TypeId,
         span: Span,
     },
+    UnknownType {
+        name: String,
+        span: Span,
+    },
+    DuplicateVariable {
+        name: String,
+        span: Span,
+    },
 }
