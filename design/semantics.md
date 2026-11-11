@@ -12,6 +12,10 @@
 - `Bool`: `true` / `false` keyword literals.
 - `Unit`: the "no meaningful value" type. Literal/keyword: `unit`. Exists from the start because the language is expression-oriented — constructs like assignment or loops need *some* value to evaluate to, and `Unit` is that value.
 
+## Variable shadowing (v0.1)
+- Redeclaring a name that is already bound **in the same (innermost) scope** is a compile-time error.
+- Declaring a name that already exists in an **outer** (enclosing) scope is allowed, and shadows the outer binding for the remainder of the inner scope. The outer binding is restored once the inner scope ends.
+
 ## Identifier casing (v0.1)
 Identifiers are split into two syntactic classes by first character:
 - **UpperIdentifier** (starts with an uppercase letter): used exclusively for type names — `Int`, `Bool`, `Unit` are instances of this class, not hardcoded keywords.
