@@ -12,4 +12,12 @@ impl TypedExpr {
     pub(crate) fn new(kind: TypedExprKind, span: Span, ty: TypeId) -> Self {
         Self { kind, span, ty }
     }
+
+    pub(crate) fn span(&self) -> Span {
+        self.span
+    }
+
+    pub(crate) fn ty(&self) -> TypeId {
+        self.ty
+    }
 }

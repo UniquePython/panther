@@ -1,6 +1,7 @@
 use crate::diagnostic::Diagnostic;
 use crate::expr::Expr;
 use crate::exprkind::ExprKind;
+use crate::ops::{AssignOp, BinaryOp, UnaryOp};
 use crate::typedexpr::TypedExpr;
 use crate::typedexprkind::TypedExprKind;
 use crate::typeerror::TypeError;
@@ -18,6 +19,10 @@ pub(crate) struct TypeChecker {
 }
 
 impl TypeChecker {
+    fn types_compatible(&self, expected: TypeId, actual: TypeId) -> bool {
+        actual == self.never_ty || expected == actual
+    }
+
     fn check_expr(&mut self, expr: Expr) -> Result<TypedExpr, Diagnostic<'_>> {
         match expr.kind {
             ExprKind::IntLiteral(v) => Ok(TypedExpr::new(
@@ -46,6 +51,31 @@ impl TypeChecker {
                     span: expr.span,
                 })),
             },
+            ExprKind::Unary { op, operand } => {
+                let typed_operand = self.check_expr(*operand)?;
+
+                let expected = match op {
+                    UnaryOp::Neg => self.int_ty,
+                    UnaryOp::Not => self.bool_ty,
+                };
+
+                if !self.types_compatible(expected, typed_operand.ty()) {
+                    return Err(Diagnostic::Type(TypeError::TypeMismatch {
+                        expected,
+                        found: typed_operand.ty(),
+                        span: typed_operand.span(),
+                    }));
+                }
+
+                Ok(TypedExpr::new(
+                    TypedExprKind::Unary {
+                        op,
+                        operand: Box::new(typed_operand),
+                    },
+                    expr.span,
+                    expected,
+                ))
+            }
         }
     }
 }
