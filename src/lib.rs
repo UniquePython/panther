@@ -22,5 +22,6 @@ mod typeerror;
 mod typeid;
 mod typescope;
 mod value;
+mod valuescope;
 mod varinfo;
 mod varscope;
