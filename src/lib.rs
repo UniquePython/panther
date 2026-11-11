@@ -16,3 +16,4 @@ mod typedef;
 mod typeid;
 mod typescope;
 mod varinfo;
+mod varscope;
