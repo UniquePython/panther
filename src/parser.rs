@@ -70,7 +70,24 @@ impl<'src> Parser<'src> {
     }
 
     fn parse_unary(&mut self) -> Result<Expr, Diagnostic<'src>> {
-        todo!()
+        let token = self.peek();
+
+        let op = match token.kind() {
+            TokenKind::Bang => UnaryOp::Not,
+            TokenKind::Minus => UnaryOp::Neg,
+            _ => return self.parse_primary(),
+        };
+
+        self.advance();
+        let operand = self.parse_unary()?;
+        let span = token.span().join(operand.span);
+        Ok(Expr::new(
+            ExprKind::Unary {
+                op,
+                operand: Box::new(operand),
+            },
+            span,
+        ))
     }
 
     fn parse_multiplicative(&mut self) -> Result<Expr, Diagnostic<'src>> {
