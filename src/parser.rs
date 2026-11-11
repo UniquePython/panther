@@ -1,11 +1,26 @@
 use crate::diagnostic::Diagnostic;
 use crate::expr::Expr;
 use crate::exprkind::ExprKind;
-use crate::ops::AssignOp;
-use crate::ops::BinaryOp;
+use crate::ops::{AssignOp, BinaryOp, UnaryOp};
 use crate::parseerror::ParseError;
+use crate::span::Span;
 use crate::token::Token;
 use crate::tokenkind::TokenKind;
+
+fn binary(op: BinaryOp, left: Expr, right: Expr) -> ExprKind {
+    ExprKind::Binary {
+        op,
+        left: Box::new(left),
+        right: Box::new(right),
+    }
+}
+
+fn not(inner: ExprKind, span: Span) -> ExprKind {
+    ExprKind::Unary {
+        op: UnaryOp::Not,
+        operand: Box::new(Expr::new(inner, span)),
+    }
+}
 
 pub(crate) struct Parser<'src> {
     tokens: Vec<Token<'src>>,
@@ -54,8 +69,51 @@ impl<'src> Parser<'src> {
         }
     }
 
-    fn parse_comparison(&mut self) -> Result<Expr, Diagnostic<'src>> {
+    fn parse_additive(&mut self) -> Result<Expr, Diagnostic<'src>> {
         todo!()
+    }
+
+    fn parse_comparison(&mut self) -> Result<Expr, Diagnostic<'src>> {
+        let left = self.parse_additive()?;
+
+        let op_kind = self.peek().kind();
+        let is_comparison = matches!(
+            op_kind,
+            TokenKind::Lt
+                | TokenKind::EqEq
+                | TokenKind::Gt
+                | TokenKind::Le
+                | TokenKind::Ge
+                | TokenKind::BangEq
+                | TokenKind::BangLt
+                | TokenKind::BangGt
+                | TokenKind::BangLe
+                | TokenKind::BangGe
+        );
+
+        if !is_comparison {
+            return Ok(left);
+        }
+
+        self.advance();
+        let right = self.parse_additive()?;
+        let span = left.span.join(right.span);
+
+        let kind = match op_kind {
+            TokenKind::Lt => binary(BinaryOp::Lt, left, right),
+            TokenKind::EqEq => binary(BinaryOp::Eq, left, right),
+            TokenKind::Gt => binary(BinaryOp::Lt, right, left), // swapped
+            TokenKind::Le => not(binary(BinaryOp::Lt, right, left), span), // !(b < a)
+            TokenKind::Ge => not(binary(BinaryOp::Lt, left, right), span), // !(a < b)
+            TokenKind::BangEq => not(binary(BinaryOp::Eq, left, right), span),
+            TokenKind::BangLt => not(binary(BinaryOp::Lt, left, right), span), // same as >=
+            TokenKind::BangGt => not(binary(BinaryOp::Lt, right, left), span), // same as <=
+            TokenKind::BangLe => binary(BinaryOp::Lt, right, left),            // same as >
+            TokenKind::BangGe => binary(BinaryOp::Lt, left, right),            // same as <
+            _ => unreachable!(),
+        };
+
+        Ok(Expr::new(kind, span))
     }
 
     fn parse_and(&mut self) -> Result<Expr, Diagnostic<'src>> {
