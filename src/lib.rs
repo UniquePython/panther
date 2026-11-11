@@ -19,5 +19,6 @@ mod typedexprkind;
 mod typeerror;
 mod typeid;
 mod typescope;
+mod value;
 mod varinfo;
 mod varscope;
