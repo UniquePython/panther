@@ -13,6 +13,8 @@ mod span;
 mod token;
 mod tokenkind;
 mod typedef;
+mod typedexpr;
+mod typedexprkind;
 mod typeid;
 mod typescope;
 mod varinfo;
