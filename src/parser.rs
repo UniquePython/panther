@@ -52,6 +52,41 @@ impl<'src> Parser<'src> {
         }
     }
 
+    fn parse_expression(&mut self) -> Result<Expr, Diagnostic<'src>> {
+        todo!()
+    }
+
+    fn parse_grouped(&mut self) -> Result<Expr, Diagnostic<'src>> {
+        self.expect(TokenKind::LParen, "'('")?;
+        let inner = self.parse_expression()?;
+        self.expect(TokenKind::RParen, "')'")?;
+        Ok(inner)
+    }
+
+    fn parse_block(&mut self) -> Result<Expr, Diagnostic<'src>> {
+        todo!()
+    }
+
+    fn parse_decl(&mut self) -> Result<Expr, Diagnostic<'src>> {
+        todo!()
+    }
+
+    fn parse_if(&mut self) -> Result<Expr, Diagnostic<'src>> {
+        todo!()
+    }
+
+    fn parse_when(&mut self) -> Result<Expr, Diagnostic<'src>> {
+        todo!()
+    }
+
+    fn parse_while(&mut self) -> Result<Expr, Diagnostic<'src>> {
+        todo!()
+    }
+
+    fn parse_repeat(&mut self) -> Result<Expr, Diagnostic<'src>> {
+        todo!()
+    }
+
     fn parse_primary(&mut self) -> Result<Expr, Diagnostic<'src>> {
         let token = self.peek();
         let span = token.span();
