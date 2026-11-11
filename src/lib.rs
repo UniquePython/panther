@@ -12,6 +12,7 @@ mod parser;
 mod span;
 mod token;
 mod tokenkind;
+mod typechecker;
 mod typedef;
 mod typedexpr;
 mod typedexprkind;
