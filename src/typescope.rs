@@ -25,6 +25,12 @@ impl TypeScope {
         Some(id)
     }
 
+    pub(crate) fn insert_anonymous(&mut self, def: TypeDef) -> TypeId {
+        let id = TypeId(self.defs.len());
+        self.defs.push(def);
+        id
+    }
+
     pub(crate) fn lookup(&self, name: &str) -> Option<TypeId> {
         self.names.get(name).copied()
     }
