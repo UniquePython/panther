@@ -352,6 +352,76 @@ impl TypeChecker {
                     result_ty,
                 ))
             }
+            ExprKind::When { condition, body } => {
+                let typed_condition = self.check_expr(*condition)?;
+
+                if !self.types_compatible(self.bool_ty, typed_condition.ty()) {
+                    return Err(Diagnostic::Type(TypeError::TypeMismatch {
+                        expected: self.bool_ty,
+                        found: typed_condition.ty(),
+                        span: typed_condition.span(),
+                    }));
+                }
+
+                let typed_body = self.check_expr(*body)?;
+
+                Ok(TypedExpr::new(
+                    TypedExprKind::When {
+                        condition: Box::new(typed_condition),
+                        body: Box::new(typed_body),
+                    },
+                    expr.span,
+                    self.unit_ty,
+                ))
+            }
+            ExprKind::While { condition, body } => {
+                let typed_condition = self.check_expr(*condition)?;
+                if !self.types_compatible(self.bool_ty, typed_condition.ty()) {
+                    return Err(Diagnostic::Type(TypeError::TypeMismatch {
+                        expected: self.bool_ty,
+                        found: typed_condition.ty(),
+                        span: typed_condition.span(),
+                    }));
+                }
+                let typed_body = self.check_expr(*body)?;
+                Ok(TypedExpr::new(
+                    TypedExprKind::While {
+                        condition: Box::new(typed_condition),
+                        body: Box::new(typed_body),
+                    },
+                    expr.span,
+                    self.unit_ty,
+                ))
+            }
+            ExprKind::Repeat { count, body } => {
+                let typed_count = self.check_expr(*count)?;
+                if !self.types_compatible(self.int_ty, typed_count.ty()) {
+                    return Err(Diagnostic::Type(TypeError::TypeMismatch {
+                        expected: self.int_ty,
+                        found: typed_count.ty(),
+                        span: typed_count.span(),
+                    }));
+                }
+                let typed_body = self.check_expr(*body)?;
+                Ok(TypedExpr::new(
+                    TypedExprKind::Repeat {
+                        count: Box::new(typed_count),
+                        body: Box::new(typed_body),
+                    },
+                    expr.span,
+                    self.unit_ty,
+                ))
+            }
+            ExprKind::Break => Ok(TypedExpr::new(
+                TypedExprKind::Break,
+                expr.span,
+                self.never_ty,
+            )),
+            ExprKind::Continue => Ok(TypedExpr::new(
+                TypedExprKind::Continue,
+                expr.span,
+                self.never_ty,
+            )),
         }
     }
 }
