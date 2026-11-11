@@ -16,6 +16,7 @@ mod typechecker;
 mod typedef;
 mod typedexpr;
 mod typedexprkind;
+mod typeerror;
 mod typeid;
 mod typescope;
 mod varinfo;
