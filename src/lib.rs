@@ -15,3 +15,4 @@ mod tokenkind;
 mod typedef;
 mod typeid;
 mod typescope;
+mod varinfo;
