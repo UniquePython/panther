@@ -269,7 +269,33 @@ impl<'src> Parser<'src> {
     }
 
     fn parse_block(&mut self) -> Result<Expr, Diagnostic<'src>> {
-        todo!()
+        let start = self.expect(TokenKind::LBrace, "'{'")?.span();
+
+        let mut exprs = Vec::new();
+        let mut trailing = None;
+
+        while !self.check(TokenKind::RBrace) {
+            let expr = self.parse_expression()?;
+
+            if self.check(TokenKind::Semi) {
+                self.advance();
+                exprs.push(expr);
+            } else if self.check(TokenKind::RBrace) {
+                trailing = Some(Box::new(expr));
+                break;
+            } else {
+                return Err(Diagnostic::Parse(ParseError::UnexpectedToken {
+                    expected: "';' or '}'",
+                    found: self.peek().kind(),
+                    span: self.peek().span(),
+                }));
+            }
+        }
+
+        let end = self.expect(TokenKind::RBrace, "'}'")?.span();
+        let span = start.join(end);
+
+        Ok(Expr::new(ExprKind::Block { exprs, trailing }, span))
     }
 
     fn parse_decl(&mut self) -> Result<Expr, Diagnostic<'src>> {
