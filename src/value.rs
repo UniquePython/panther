@@ -1,5 +1,5 @@
 #[derive(Debug, Clone, Copy)]
-enum Value {
+pub(crate) enum Value {
     Int(i64),
     Bool(bool),
     Unit,
