@@ -123,7 +123,17 @@ impl<'src> Parser<'src> {
             _ => return self.parse_primary(),
         };
 
-        self.advance();
+        self.advance(); // consume '!' or '-'
+
+        if op == UnaryOp::Neg {
+            if let TokenKind::IntLiteral(magnitude) = self.peek().kind() {
+                let literal_token = self.advance(); // consume the literal itself
+                let value = Self::negate_literal(magnitude, literal_token.span())?;
+                let span = token.span().join(literal_token.span());
+                return Ok(Expr::new(ExprKind::IntLiteral(value), span));
+            }
+        }
+
         let operand = self.parse_unary()?;
         let span = token.span().join(operand.span);
         Ok(Expr::new(
@@ -133,6 +143,24 @@ impl<'src> Parser<'src> {
             },
             span,
         ))
+    }
+
+    fn negate_literal(magnitude: u64, span: Span) -> Result<i64, Diagnostic<'src>> {
+        const MIN_MAGNITUDE: u64 = i64::MIN.unsigned_abs();
+
+        if magnitude > MIN_MAGNITUDE {
+            return Err(Diagnostic::Parse(ParseError::IntLiteralOutOfRange {
+                value: magnitude,
+                negated: true,
+                span,
+            }));
+        }
+
+        if magnitude == MIN_MAGNITUDE {
+            Ok(i64::MIN)
+        } else {
+            Ok(-(magnitude as i64))
+        }
     }
 
     fn parse_multiplicative(&mut self) -> Result<Expr, Diagnostic<'src>> {
@@ -471,9 +499,16 @@ impl<'src> Parser<'src> {
         let span = token.span();
 
         match token.kind() {
-            TokenKind::IntLiteral(value) => {
+            TokenKind::IntLiteral(magnitude) => {
                 self.advance();
-                Ok(Expr::new(ExprKind::IntLiteral(value), span))
+                if magnitude > i64::MAX as u64 {
+                    return Err(Diagnostic::Parse(ParseError::IntLiteralOutOfRange {
+                        value: magnitude,
+                        negated: false,
+                        span,
+                    }));
+                }
+                Ok(Expr::new(ExprKind::IntLiteral(magnitude as i64), span))
             }
             TokenKind::BoolLiteral(value) => {
                 self.advance();

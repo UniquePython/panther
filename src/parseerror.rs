@@ -10,4 +10,9 @@ pub(crate) enum ParseError<'src> {
     InvalidAssignmentTarget {
         span: Span,
     },
+    IntLiteralOutOfRange {
+        value: u64,
+        negated: bool,
+        span: Span,
+    },
 }

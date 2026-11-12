@@ -100,7 +100,7 @@ impl<'src> Lexer<'src> {
 
     fn scan_int_literal(&mut self) -> Result<Token<'src>, Diagnostic<'src>> {
         let start = self.cursor;
-        let mut value = 0_i64;
+        let mut value = 0_u64;
         let mut overflowed = false;
 
         self.consume_while(|byte| {
@@ -108,7 +108,7 @@ impl<'src> Lexer<'src> {
                 return false;
             }
 
-            let digit = (byte - b'0') as i64;
+            let digit = (byte - b'0') as u64;
 
             if !overflowed {
                 match value

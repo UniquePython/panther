@@ -1,7 +1,7 @@
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub(crate) enum TokenKind<'src> {
     // Literals
-    IntLiteral(i64),
+    IntLiteral(u64),
     BoolLiteral(bool),
     UnitLiteral,
 
