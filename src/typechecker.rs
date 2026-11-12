@@ -223,7 +223,6 @@ impl TypeChecker {
 
                 Ok(TypedExpr::new(
                     TypedExprKind::Decl {
-                        mutability,
                         name,
                         value: Box::new(typed_value),
                     },
