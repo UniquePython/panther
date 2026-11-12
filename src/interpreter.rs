@@ -300,6 +300,32 @@ impl Interpreter {
                     Flow::Continue => Ok(Flow::Continue),           // propagate
                 }
             }
+            TypedExprKind::While { condition, body } => {
+                loop {
+                    let cond = match self.eval_value(&condition) {
+                        Ok(v) => v,
+                        Err(Signal::Break) => return Ok(Flow::Break), // condition itself broke out of an OUTER loop
+                        Err(Signal::Continue) => return Ok(Flow::Continue), // same, for an outer loop
+                        Err(Signal::Error(e)) => return Err(e),
+                    };
+
+                    let Value::Bool(cond) = cond else {
+                        unreachable!("typechecker guarantees Bool condition")
+                    };
+
+                    if !cond {
+                        break;
+                    }
+
+                    match self.eval(&body)? {
+                        Flow::Value(_) => {}        // normal iteration, keep looping
+                        Flow::Break => break,       // THIS loop's break — caught here, stop looping
+                        Flow::Continue => continue, // THIS loop's continue — caught here, skip to next condition check
+                    }
+                }
+
+                Ok(Flow::Value(Value::Unit)) // While always evaluates to Unit
+            }
         }
     }
 
