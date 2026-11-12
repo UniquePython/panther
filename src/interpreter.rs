@@ -19,9 +19,9 @@ impl Interpreter {
     }
 
     fn eval(&mut self, expr: &TypedExpr) -> Result<Flow, RuntimeError> {
-        match *expr.kind() {
-            TypedExprKind::IntLiteral(v) => Ok(Flow::Value(Value::Int(v))),
-            TypedExprKind::BoolLiteral(v) => Ok(Flow::Value(Value::Bool(v))),
+        match expr.kind() {
+            TypedExprKind::IntLiteral(v) => Ok(Flow::Value(Value::Int(*v))),
+            TypedExprKind::BoolLiteral(v) => Ok(Flow::Value(Value::Bool(*v))),
             TypedExprKind::UnitLiteral => Ok(Flow::Value(Value::Unit)),
             TypedExprKind::Ident(name) => Ok(Flow::Value(self.value_scope.lookup(&name))),
             TypedExprKind::Unary { op, operand } => {
@@ -85,7 +85,7 @@ impl Interpreter {
                     match result {
                         Some(v) => Ok(Flow::Value(Value::Int(v))),
                         None => Err(RuntimeError::IntegerOverflow {
-                            op,
+                            op: *op,
                             left: l,
                             right: r,
                             span: expr.span(),
@@ -326,6 +326,37 @@ impl Interpreter {
 
                 Ok(Flow::Value(Value::Unit)) // While always evaluates to Unit
             }
+            TypedExprKind::Repeat { count, body } => {
+                let count_val = match self.eval_value(&count) {
+                    Ok(v) => v,
+                    Err(Signal::Break) => return Ok(Flow::Break),
+                    Err(Signal::Continue) => return Ok(Flow::Continue),
+                    Err(Signal::Error(e)) => return Err(e),
+                };
+
+                let Value::Int(count_val) = count_val else {
+                    unreachable!("typechecker guarantees Int count")
+                };
+
+                if count_val < 0 {
+                    return Err(RuntimeError::NegativeRepeatCount {
+                        count: count_val,
+                        span: expr.span(),
+                    });
+                }
+
+                for _ in 0..count_val {
+                    match self.eval(&body)? {
+                        Flow::Value(_) => {}
+                        Flow::Break => break,
+                        Flow::Continue => continue,
+                    }
+                }
+
+                Ok(Flow::Value(Value::Unit))
+            }
+            TypedExprKind::Break => Ok(Flow::Break),
+            TypedExprKind::Continue => Ok(Flow::Continue),
         }
     }
 
