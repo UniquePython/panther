@@ -213,6 +213,49 @@ impl Interpreter {
 
                 Ok(Flow::Value(result))
             }
+            TypedExprKind::Block { exprs, trailing } => {
+                self.value_scope.push();
+
+                for e in exprs {
+                    match self.eval(&e) {
+                        Ok(Flow::Value(_)) => {} // discard, per block semantics — keep going
+                        Ok(Flow::Break) => {
+                            self.value_scope.pop();
+                            return Ok(Flow::Break);
+                        }
+                        Ok(Flow::Continue) => {
+                            self.value_scope.pop();
+                            return Ok(Flow::Continue);
+                        }
+                        Err(e) => {
+                            self.value_scope.pop();
+                            return Err(e);
+                        }
+                    }
+                }
+
+                let result = match trailing {
+                    Some(t) => match self.eval(&t) {
+                        Ok(Flow::Value(v)) => Flow::Value(v),
+                        Ok(Flow::Break) => {
+                            self.value_scope.pop();
+                            return Ok(Flow::Break);
+                        }
+                        Ok(Flow::Continue) => {
+                            self.value_scope.pop();
+                            return Ok(Flow::Continue);
+                        }
+                        Err(e) => {
+                            self.value_scope.pop();
+                            return Err(e);
+                        }
+                    },
+                    None => Flow::Value(Value::Unit),
+                };
+
+                self.value_scope.pop();
+                Ok(result)
+            }
         }
     }
 
