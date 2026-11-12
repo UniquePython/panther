@@ -1,5 +1,5 @@
 use crate::flow::Flow;
-use crate::ops::UnaryOp;
+use crate::ops::{BinaryOp, UnaryOp};
 use crate::runtimeerror::RuntimeError;
 use crate::signal::Signal;
 use crate::typedexpr::TypedExpr;
@@ -44,6 +44,146 @@ impl Interpreter {
                     _ => unreachable!("typechecker guarantees operand type matches operator"),
                 }
             }
+            TypedExprKind::Binary { op, left, right } => match op {
+                BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div | BinaryOp::Mod => {
+                    let l = match self.eval_value(&left) {
+                        Ok(v) => v,
+                        Err(Signal::Break) => return Ok(Flow::Break),
+                        Err(Signal::Continue) => return Ok(Flow::Continue),
+                        Err(Signal::Error(e)) => return Err(e),
+                    };
+                    let r = match self.eval_value(&right) {
+                        Ok(v) => v,
+                        Err(Signal::Break) => return Ok(Flow::Break),
+                        Err(Signal::Continue) => return Ok(Flow::Continue),
+                        Err(Signal::Error(e)) => return Err(e),
+                    };
+
+                    let (Value::Int(l), Value::Int(r)) = (l, r) else {
+                        unreachable!("typechecker guarantees Int operands for arithmetic")
+                    };
+
+                    let result = match op {
+                        BinaryOp::Add => l.checked_add(r),
+                        BinaryOp::Sub => l.checked_sub(r),
+                        BinaryOp::Mul => l.checked_mul(r),
+                        BinaryOp::Div => {
+                            if r == 0 {
+                                return Err(RuntimeError::DivisionByZero { span: expr.span() });
+                            }
+                            l.checked_div(r)
+                        }
+                        BinaryOp::Mod => {
+                            if r == 0 {
+                                return Err(RuntimeError::DivisionByZero { span: expr.span() });
+                            }
+                            l.checked_rem(r)
+                        }
+                        _ => unreachable!(),
+                    };
+
+                    match result {
+                        Some(v) => Ok(Flow::Value(Value::Int(v))),
+                        None => Err(RuntimeError::IntegerOverflow {
+                            op,
+                            left: l,
+                            right: r,
+                            span: expr.span(),
+                        }),
+                    }
+                }
+                BinaryOp::Lt => {
+                    let l = match self.eval_value(&left) {
+                        Ok(v) => v,
+                        Err(Signal::Break) => return Ok(Flow::Break),
+                        Err(Signal::Continue) => return Ok(Flow::Continue),
+                        Err(Signal::Error(e)) => return Err(e),
+                    };
+                    let r = match self.eval_value(&right) {
+                        Ok(v) => v,
+                        Err(Signal::Break) => return Ok(Flow::Break),
+                        Err(Signal::Continue) => return Ok(Flow::Continue),
+                        Err(Signal::Error(e)) => return Err(e),
+                    };
+                    let (Value::Int(l), Value::Int(r)) = (l, r) else {
+                        unreachable!("typechecker guarantees Int operands for Lt")
+                    };
+                    Ok(Flow::Value(Value::Bool(l < r)))
+                }
+                BinaryOp::Eq => {
+                    let l = match self.eval_value(&left) {
+                        Ok(v) => v,
+                        Err(Signal::Break) => return Ok(Flow::Break),
+                        Err(Signal::Continue) => return Ok(Flow::Continue),
+                        Err(Signal::Error(e)) => return Err(e),
+                    };
+                    let r = match self.eval_value(&right) {
+                        Ok(v) => v,
+                        Err(Signal::Break) => return Ok(Flow::Break),
+                        Err(Signal::Continue) => return Ok(Flow::Continue),
+                        Err(Signal::Error(e)) => return Err(e),
+                    };
+                    let result = match (l, r) {
+                        (Value::Int(a), Value::Int(b)) => a == b,
+                        (Value::Bool(a), Value::Bool(b)) => a == b,
+                        (Value::Unit, Value::Unit) => true,
+                        _ => unreachable!("typechecker guarantees matching operand types for Eq"),
+                    };
+                    Ok(Flow::Value(Value::Bool(result)))
+                }
+                BinaryOp::And => {
+                    let l = match self.eval_value(&left) {
+                        Ok(v) => v,
+                        Err(Signal::Break) => return Ok(Flow::Break),
+                        Err(Signal::Continue) => return Ok(Flow::Continue),
+                        Err(Signal::Error(e)) => return Err(e),
+                    };
+                    let Value::Bool(l) = l else {
+                        unreachable!("typechecker guarantees Bool operand")
+                    };
+
+                    if !l {
+                        return Ok(Flow::Value(Value::Bool(false))); // short-circuit: skip right entirely
+                    }
+
+                    let r = match self.eval_value(&right) {
+                        Ok(v) => v,
+                        Err(Signal::Break) => return Ok(Flow::Break),
+                        Err(Signal::Continue) => return Ok(Flow::Continue),
+                        Err(Signal::Error(e)) => return Err(e),
+                    };
+                    let Value::Bool(r) = r else {
+                        unreachable!("typechecker guarantees Bool operand")
+                    };
+                    Ok(Flow::Value(Value::Bool(r)))
+                }
+                BinaryOp::Or => {
+                    let l = match self.eval_value(&left) {
+                        Ok(v) => v,
+                        Err(Signal::Break) => return Ok(Flow::Break),
+                        Err(Signal::Continue) => return Ok(Flow::Continue),
+                        Err(Signal::Error(e)) => return Err(e),
+                    };
+                    let Value::Bool(l) = l else {
+                        unreachable!("typechecker guarantees Bool operand")
+                    };
+
+                    if l {
+                        return Ok(Flow::Value(Value::Bool(true))); // short-circuit: skip right entirely
+                    }
+
+                    let r = match self.eval_value(&right) {
+                        Ok(v) => v,
+                        Err(Signal::Break) => return Ok(Flow::Break),
+                        Err(Signal::Continue) => return Ok(Flow::Continue),
+                        Err(Signal::Error(e)) => return Err(e),
+                    };
+                    let Value::Bool(r) = r else {
+                        unreachable!("typechecker guarantees Bool operand")
+                    };
+                    Ok(Flow::Value(Value::Bool(r)))
+                }
+            },
         }
     }
 
