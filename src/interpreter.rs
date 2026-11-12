@@ -1,5 +1,5 @@
 use crate::flow::Flow;
-use crate::ops::{BinaryOp, UnaryOp};
+use crate::ops::{AssignOp, BinaryOp, UnaryOp};
 use crate::runtimeerror::RuntimeError;
 use crate::signal::Signal;
 use crate::typedexpr::TypedExpr;
@@ -195,6 +195,23 @@ impl Interpreter {
                 self.value_scope.declare(name.clone(), v);
 
                 Ok(Flow::Value(v))
+            }
+            TypedExprKind::Assign { target, op, value } => {
+                let new_value = match self.eval_value(&value) {
+                    Ok(v) => v,
+                    Err(Signal::Break) => return Ok(Flow::Break),
+                    Err(Signal::Continue) => return Ok(Flow::Continue),
+                    Err(Signal::Error(e)) => return Err(e),
+                };
+
+                let result = match op {
+                    AssignOp::Old => self.value_scope.lookup(&target),
+                    AssignOp::New => new_value,
+                };
+
+                self.value_scope.set(&target, new_value);
+
+                Ok(Flow::Value(result))
             }
         }
     }
