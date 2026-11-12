@@ -256,6 +256,28 @@ impl Interpreter {
                 self.value_scope.pop();
                 Ok(result)
             }
+            TypedExprKind::If {
+                condition,
+                then_branch,
+                else_branch,
+            } => {
+                let cond = match self.eval_value(&condition) {
+                    Ok(v) => v,
+                    Err(Signal::Break) => return Ok(Flow::Break),
+                    Err(Signal::Continue) => return Ok(Flow::Continue),
+                    Err(Signal::Error(e)) => return Err(e),
+                };
+
+                let Value::Bool(cond) = cond else {
+                    unreachable!("typechecker guarantees Bool condition")
+                };
+
+                if cond {
+                    self.eval(&then_branch)
+                } else {
+                    self.eval(&else_branch)
+                }
+            }
         }
     }
 
