@@ -1,6 +1,7 @@
 use crate::ops::BinaryOp;
 use crate::span::Span;
 
+#[derive(Debug, Clone, Copy)]
 pub(crate) enum RuntimeError {
     NegativeRepeatCount {
         count: i64,
@@ -13,6 +14,10 @@ pub(crate) enum RuntimeError {
         span: Span,
     },
     DivisionByZero {
+        span: Span,
+    },
+    NegationOverflow {
+        value: i64,
         span: Span,
     },
 }

@@ -12,6 +12,7 @@ mod ops;
 mod parseerror;
 mod parser;
 mod runtimeerror;
+mod signal;
 mod span;
 mod token;
 mod tokenkind;
