@@ -278,6 +278,28 @@ impl Interpreter {
                     self.eval(&else_branch)
                 }
             }
+            TypedExprKind::When { condition, body } => {
+                let cond = match self.eval_value(&condition) {
+                    Ok(v) => v,
+                    Err(Signal::Break) => return Ok(Flow::Break),
+                    Err(Signal::Continue) => return Ok(Flow::Continue),
+                    Err(Signal::Error(e)) => return Err(e),
+                };
+
+                let Value::Bool(cond) = cond else {
+                    unreachable!("typechecker guarantees Bool condition")
+                };
+
+                if !cond {
+                    return Ok(Flow::Value(Value::Unit));
+                }
+
+                match self.eval(&body)? {
+                    Flow::Value(_) => Ok(Flow::Value(Value::Unit)), // discard body's value, When is always Unit
+                    Flow::Break => Ok(Flow::Break),                 // propagate
+                    Flow::Continue => Ok(Flow::Continue),           // propagate
+                }
+            }
         }
     }
 
