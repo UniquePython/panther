@@ -1,4 +1,3 @@
-use crate::mutability::Mutability;
 use crate::ops::{AssignOp, BinaryOp, UnaryOp};
 use crate::typedexpr::TypedExpr;
 
@@ -19,7 +18,6 @@ pub(crate) enum TypedExprKind {
     },
 
     Decl {
-        mutability: Mutability,
         name: String,
         value: Box<TypedExpr>,
     },

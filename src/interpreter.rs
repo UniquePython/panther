@@ -184,6 +184,18 @@ impl Interpreter {
                     Ok(Flow::Value(Value::Bool(r)))
                 }
             },
+            TypedExprKind::Decl { name, value } => {
+                let v = match self.eval_value(&value) {
+                    Ok(v) => v,
+                    Err(Signal::Break) => return Ok(Flow::Break),
+                    Err(Signal::Continue) => return Ok(Flow::Continue),
+                    Err(Signal::Error(e)) => return Err(e),
+                };
+
+                self.value_scope.declare(name.clone(), v);
+
+                Ok(Flow::Value(v))
+            }
         }
     }
 
